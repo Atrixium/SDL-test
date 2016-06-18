@@ -1,6 +1,7 @@
 // Using SDL2 and stdio
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <iostream>
 
 // Global Constants
 
@@ -34,7 +35,6 @@
 int main(int argc, char* args[] )
 {
     //Start SDL and create window
-    init();
     if( !init() )
     {
         printf( "Failed to initialize!\n" );
