@@ -4,8 +4,8 @@
 #include <string>
 
 //Global constants
-const int WINDOW_WIDTH = 640;
-const int WINDOW_HEIGHT = 480;
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 600;
 
 //Global variables
 SDL_Window* gWindow = NULL;
@@ -106,13 +106,20 @@ int main( int argc, char* args[] )
     {
         printf( "SDL could not initialize!\n" );
     }
+//    LTexture bground2;
+//    bground2.LoadTexture( "images/alphastars.png" )
 
     bool isRunning = true;
 
     SDL_Event e;
 
-    LTexture logo;
-    logo.LoadTexture( "images/cb.bmp" );
+    LTexture bground1;
+    bground1.LoadTexture( "images/starfield.png" );
+
+//    LTexture bground2;
+//    bground2.LoadTexture( "images/alphastars.png" )
+    int x = 0;
+    int y = 0;
 
     while( isRunning ) //Main loop
     {
@@ -127,12 +134,16 @@ int main( int argc, char* args[] )
 
         SDL_RenderClear( gRenderer );
         //logo.Render( (WINDOW_WIDTH - logo.getWidth() ) / 2 , ( WINDOW_HEIGHT - logo.getHeight() ) / 2 ) ;
-        int x = 0;
-        int y = 0;
-        SDL_GetMouseState(&x, &y);
-        x = x - ( logo.getWidth() / 2 ) ;
-        y = y - ( logo.getHeight() / 2 );
-        logo.Render( x, y );
+//        SDL_GetMouseState(&x, &y);
+//        x = x - ( logo.getWidth() / 2 ) ;
+//        y = y - ( logo.getHeight() / 2 );
+    printf ( "x = %d\n", x );
+    x--;
+    if( x <=(-bground1.getWidth() ) / 2 )
+    {
+        x = 0;
+    }
+    bground1.Render( x, y );
         SDL_RenderPresent( gRenderer );
     }
 
