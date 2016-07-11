@@ -25,7 +25,8 @@ public:
 
     void free(); // Deallocates texture
     bool LoadTexture(std::string path); //Load a texture from a file, return false if fail
-    void Render(int x, int y); //Renders texture at X and Y
+    bool LoadKeyedTexture(std::string path, Uint8 r, Uint8 g, Uint8 b ); //Load a texture from a file, return false if fail
+    void Render(int x, int y, SDL_Rect* clip); //Renders texture at X and Y and uses clip if not null
 
     int getWidth();
     int getHeight();
@@ -34,6 +35,20 @@ private:
     SDL_Texture* mTexture;
     int mWidth;
     int mHeight;
+};
+
+class SpriteSheet : LTexture
+{
+public:
+    SpriteSheet();
+    ~SpriteSheet();
+
+
+
+private:
+
+    int cols;
+    int rows;
 };
 
 LTexture::LTexture()
@@ -50,8 +65,13 @@ LTexture::~LTexture()
 
 void LTexture::free()
 {
-    SDL_DestroyTexture( mTexture );
-    mTexture = nullptr;
+    if( mTexture != NULL )
+    {
+        SDL_DestroyTexture( mTexture );
+        mTexture = nullptr;
+        mWidth = 0;
+        mHeight = 0;
+    }
 }
 
 bool LTexture::LoadTexture(std::string path)
@@ -66,9 +86,16 @@ bool LTexture::LoadTexture(std::string path)
     }
     else
     {
-        mWidth = image->w;
-        mHeight = image->h;
         mTexture = SDL_CreateTextureFromSurface( gRenderer, image );
+        if(mTexture == NULL)
+        {
+            printf( "Unable to create texture from surface! SDL Error: %s", SDL_GetError() );
+        }
+        else
+        {
+            mWidth = image->w;
+            mHeight = image->h;
+        }
     }
 
     SDL_FreeSurface( image );
@@ -76,7 +103,38 @@ bool LTexture::LoadTexture(std::string path)
     return success;
     };
 
-    void LTexture::Render( int x, int y )
+    bool LTexture::LoadKeyedTexture(std::string path, Uint8 r, Uint8 g, Uint8 b )
+{
+    bool success = true;
+    SDL_Surface* image = NULL;
+    image = IMG_Load( path.c_str() );
+    if(!image)
+    {
+        printf( "Could not load image %s! IMG_Error:%s\n", path.c_str(), IMG_GetError() );
+        success = false;
+    }
+    else
+    {
+        SDL_SetColorKey( image, SDL_TRUE, SDL_MapRGB( image->format, r, g, b) );
+        mTexture = SDL_CreateTextureFromSurface( gRenderer, image );
+        if(mTexture == NULL)
+        {
+            printf( "Unable to create texture from surface! SDL Error: %s", SDL_GetError() );
+            success = false;
+        }
+        else
+        {
+            mWidth = image->w;
+            mHeight = image->h;
+        }
+    }
+
+    SDL_FreeSurface( image );
+
+    return success;
+    };
+
+    void LTexture::Render( int x, int y, SDL_Rect* clip )
     {
         SDL_Rect dest
         {
@@ -85,7 +143,15 @@ bool LTexture::LoadTexture(std::string path)
           .w = mWidth,
           .h =  mHeight
         };
-        SDL_RenderCopy( gRenderer, mTexture, NULL, &dest);
+
+        //Set clip rendering dimensions
+        if( clip != NULL )
+        {
+            dest.w = clip->w;
+            dest.h = clip->h;
+        }
+
+        SDL_RenderCopy( gRenderer, mTexture, clip, &dest);
     }
     int LTexture::getHeight()
     {
@@ -97,6 +163,13 @@ bool LTexture::LoadTexture(std::string path)
         return mWidth;
     }
 
+//Animation Struct
+struct animation
+{
+    int numFrames;
+    SDL_Rect frames[100]; //create an array of a max size of 100 frames
+    int centerOffset[100]; //create an array of a max size of 100 frames
+};
 
 int main( int argc, char* args[] )
 {
@@ -106,19 +179,165 @@ int main( int argc, char* args[] )
     {
         printf( "SDL could not initialize!\n" );
     }
-//    LTexture bground2;
-//    bground2.LoadTexture( "images/alphastars.png" )
 
     bool isRunning = true;
 
     SDL_Event e;
 
+    LTexture anim;
+    anim.LoadKeyedTexture( "images/Megaman.png", 0, 0, 0 );
+
     LTexture bground1;
     bground1.LoadTexture( "images/starfield.png" );
 
-//    LTexture bground2;
-//    bground2.LoadTexture( "images/alphastars.png" )
-    int x = 0;
+    LTexture bground2;
+    bground2.LoadKeyedTexture( "images/alphastars.png", 0, 0, 0 );
+
+
+    // Load and play animation with variable size frames
+
+    // Instantiate an animation struct
+    animation running;
+    running.numFrames = 10;
+
+    // SDL_Rect animation[10]; //Create an array large enough to hold each frame
+    int i = 0; //current frame
+
+    //Define frames
+
+    running.frames[0].x = 0;
+    running.frames[0].y = 91;
+    running.frames[0].w = 32;
+    running.frames[0].h = 42;
+
+    running.frames[1].x = 34;
+    running.frames[1].y = 91;
+    running.frames[1].w = 33;
+    running.frames[1].h = 42;
+
+    running.frames[2].x = 73;
+    running.frames[2].y = 91;
+    running.frames[2].w = 45;
+    running.frames[2].h = 42;
+
+    running.frames[3].x = 122;
+    running.frames[3].y = 91;
+    running.frames[3].w = 36;
+    running.frames[3].h = 42;
+
+    running.frames[4].x = 162;
+    running.frames[4].y = 91;
+    running.frames[4].w = 29;
+    running.frames[4].h = 42;
+
+    running.frames[5].x = 193;
+    running.frames[5].y = 91;
+    running.frames[5].w = 29;
+    running.frames[5].h = 42;
+
+    running.frames[6].x = 224;
+    running.frames[6].y = 91;
+    running.frames[6].w = 29;
+    running.frames[6].h = 42;
+
+    running.frames[7].x = 258;
+    running.frames[7].y = 91;
+    running.frames[7].w = 39;
+    running.frames[7].h = 42;
+
+    running.frames[8].x = 302;
+    running.frames[8].y = 91;
+    running.frames[8].w = 30;
+    running.frames[8].h = 42;
+
+    running.frames[9].x = 336;
+    running.frames[9].y = 91;
+    running.frames[9].w = 28;
+    running.frames[9].h = 42;
+
+    running.centerOffset[0] = 20;
+    running.centerOffset[1] = 21;
+    running.centerOffset[2] = 28;
+    running.centerOffset[3] = 23;
+    running.centerOffset[4] = 17;
+    running.centerOffset[5] = 17;
+    running.centerOffset[6] = 17;
+    running.centerOffset[7] = 22;
+    running.centerOffset[8] = 18;
+    running.centerOffset[9] = 15;
+
+//    animation[0].x = 0;
+//    animation[0].y = 91;
+//    animation[0].w = 32;
+//    animation[0].h = 42;
+//
+//    animation[1].x = 34;
+//    animation[1].y = 91;
+//    animation[1].w = 33;
+//    animation[1].h = 42;
+//
+//    animation[2].x = 73;
+//    animation[2].y = 91;
+//    animation[2].w = 45;
+//    animation[2].h = 42;
+//
+//    animation[3].x = 122;
+//    animation[3].y = 91;
+//    animation[3].w = 36;
+//    animation[3].h = 42;
+//
+//    animation[4].x = 162;
+//    animation[4].y = 91;
+//    animation[4].w = 29;
+//    animation[4].h = 42;
+//
+//    animation[5].x = 193;
+//    animation[5].y = 91;
+//    animation[5].w = 29;
+//    animation[5].h = 42;
+//
+//    animation[6].x = 224;
+//    animation[6].y = 91;
+//    animation[6].w = 29;
+//    animation[6].h = 42;
+//
+//    animation[7].x = 258;
+//    animation[7].y = 91;
+//    animation[7].w = 39;
+//    animation[7].h = 42;
+//
+//    animation[8].x = 302;
+//    animation[8].y = 91;
+//    animation[8].w = 30;
+//    animation[8].h = 42;
+//
+//    animation[9].x = 336;
+//    animation[9].y = 91;
+//    animation[9].w = 28;
+//    animation[9].h = 42;
+//
+//    int centerOffset[10];
+//
+//    centerOffset[0] = 20;
+//    centerOffset[1] = 21;
+//    centerOffset[2] = 28;
+//    centerOffset[3] = 23;
+//    centerOffset[4] = 17;
+//    centerOffset[5] = 17;
+//    centerOffset[6] = 17;
+//    centerOffset[7] = 22;
+//    centerOffset[8] = 18;
+//    centerOffset[9] = 15;
+
+
+    // End animation process
+
+
+    int mx;
+    int my;
+
+    int x1 = 0;
+    int x2 = 0;
     int y = 0;
 
     while( isRunning ) //Main loop
@@ -133,20 +352,42 @@ int main( int argc, char* args[] )
         }
 
         SDL_RenderClear( gRenderer );
-        //logo.Render( (WINDOW_WIDTH - logo.getWidth() ) / 2 , ( WINDOW_HEIGHT - logo.getHeight() ) / 2 ) ;
-//        SDL_GetMouseState(&x, &y);
-//        x = x - ( logo.getWidth() / 2 ) ;
-//        y = y - ( logo.getHeight() / 2 );
-    printf ( "x = %d\n", x );
-    x--;
-    if( x <=(-bground1.getWidth() ) / 2 )
-    {
-        x = 0;
-    }
-    bground1.Render( x, y );
-        SDL_RenderPresent( gRenderer );
+        anim.Render( (WINDOW_WIDTH - anim.getWidth() ) / 2 , ( WINDOW_HEIGHT - anim.getHeight() ) / 2, NULL );
+        SDL_GetMouseState(&mx, &my);
+        //mx = mx - ( logo.getWidth() / 2 ) ;
+        //my = my - ( logo.getHeight() / 2 );
+        printf ( "x1 = %d\n", x1 );
+        printf ( "x2 = %d\n", x2 );
+        x1--;
+        x2 = x2 - 3;
+
+        if( x1 <=(-bground1.getWidth() ) / 2 )
+        {
+            x1 = 0;
+        }
+            bground1.Render( x1, y, NULL );
+
+        if( x2 <=(-bground2.getWidth() ) / 2 )
+        {
+            x2 = 0;
+        }
+            bground2.Render( x2, y, NULL );
+
+            anim.Render( mx - running.centerOffset[i/4], my - 42, &running.frames[i/4] ); //Render current frame at mouse position
+            i++; //increment frame count
+            printf( "Displaying Frame #: %d\n", i/4 );
+            if ( i /4 > running.numFrames - 1 ) //if frames is greater than total frames, recycle
+            {
+                i = 0;
+            }
+
+
+            SDL_RenderPresent( gRenderer );
     }
 
+    //Destroy Texture(s)
+    bground1.free();
+    bground2.free();
 
     //Destroy Renderer
     SDL_DestroyRenderer( gRenderer );
